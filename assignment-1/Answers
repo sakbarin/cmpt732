@@ -1,0 +1,94 @@
+1) Are there any parts of the original WordCount that still confuse you? If so, what?
+
+- Since I have not used Java language for some years, I found it a bit difficult to get onto it especially when programming without an IDE. Following instructions and doing a bit of search over the internet, I was able to go through the assignment step by step. So the answer to this question is "No".
+
+====================================================================
+
+2) How did the output change when you submitted with -D mapreduce.job.reduces=3? Why would this be necessary if your job produced large output sets?
+
+- When we set mapreduce.job.reduces=3, the application runs 3 parallel reduce tasks and generates three output files (part-r-00000, part-r-00001, part-r-00002). In this case, 3 reducers work in parallel and each reducer create their output. The program groups the keys into three parts and sends each part to one reducer. Hence, keys in each generated file are distinct in that file and other files.
+
+
+shahram@shakbari:~/PBD/A1P1/output-1$ ls
+part-r-00000  part-r-00001  part-r-00002  _SUCCESS
+
+
+shahram@shakbari:~/PBD/A1P1$ hdfs dfs -cat output-1/part-r-00000 | grep -i "^ab"
+abandoned	1
+abatement	1
+abbeyland	1
+abdication	1
+abhor		1
+able		77
+abominably	1
+about		335
+abruptly	3
+absent		7
+absolutely	15
+absurdity	5
+abused		3
+abuses		1
+
+- This helps to make the most of distributed systems and parallelism. If we use a small number of reducers especially for a large amount of data, we are not taking advantage of parallel computation completely and it will take longer for a process to finish. i.e., we have not used our resources efficiently. We should also keep in mind that increasing the number of reducers unreasonably isn't helpful and it will lead to framework overhead and inefficiency.
+
+====================================================================
+
+3) How was the -D mapreduce.job.reduces=0 output different?
+
+- When we set mapreduce.job.reduces=0, it means that we don't intend to run reducer. So the application will only run mapper and map() method generates the final output files (part-m-00000, ...).
+
+The map() method reads each input file separately and breaks the whole text down to words [word by word from start to the end of the file]. Then it writes a pair of (Key, Value) to the output file. Each key represents each word [of the input file] and value is 1 for each word.
+
+shahram@shakbari:~/PBD/A1P1$ hdfs dfs -cat output-1/part-m-00000 | grep -i "^abou"
+about	1
+about	1
+about	1
+about	1
+about	1
+about	1
+about	1
+...
+
+The number of output files generated changes by the number of input files. The program generates an output file per one input file. When I run the code on wordcount-1 dataset, the program generates 3 output files (We have 3 input files). When I run the code on wordcount-2 dataset, the program generates 18 output files [the same as the number of input files=18].
+
+====================================================================
+
+4) Was there any noticeable difference in the running time of your RedditAverage with and without the combiner optimization? 
+
+- The results of running RedditAverage with combiner optimization is shown following:
+	Job Counters 
+		Launched map tasks=10
+		Launched reduce tasks=1
+		Data-local map tasks=8
+		Rack-local map tasks=2
+		Total time spent by all maps in occupied slots (ms)=45811
+		Total time spent by all reduces in occupied slots (ms)=2223
+		Total time spent by all map tasks (ms)=45811
+		Total time spent by all reduce tasks (ms)=2223
+		Total vcore-milliseconds taken by all map tasks=45811
+		Total vcore-milliseconds taken by all reduce tasks=2223
+		Total megabyte-milliseconds taken by all map tasks=46910464
+		Total megabyte-milliseconds taken by all reduce tasks=2276352
+
+- The results of running RedditAverage without combiner optimization is shown following:
+	Job Counters 
+		Launched map tasks=10
+		Launched reduce tasks=1
+		Data-local map tasks=7
+		Rack-local map tasks=3
+		Total time spent by all maps in occupied slots (ms)=45291
+		Total time spent by all reduces in occupied slots (ms)=2778
+		Total time spent by all map tasks (ms)=45291
+		Total time spent by all reduce tasks (ms)=2778
+		Total vcore-milliseconds taken by all map tasks=45291
+		Total vcore-milliseconds taken by all reduce tasks=2778
+		Total megabyte-milliseconds taken by all map tasks=46377984
+		Total megabyte-milliseconds taken by all reduce tasks=2844672
+
+The difference in the time spent for reduce tasks with and without combiner is not significant, however, I believe this might be due to the condition of the server (available memory, available processors, no. of running tasks, etc.) at the time of execution. I also believe that this minor difference is probably because of the size of the input data. 
+
+Shuffle and sort tasks take place before a reduce task. Theoretically, these are heavy and time-consuming tasks. If we increase the size of input data without combiner optimization, a large set of <key>s will be passed for shuffle, sort and reduce tasks. As a result, the program will take longer to execute. 
+
+Combine optimization minimizes the number of <key>s passed for shuffle, sort and reduce tasks. Hence, this will decrease the amount of resources and time required to process data. Without this optimization, the run-time seems to be comparably higher than that of having a combiner.
+
+====================================================================
