@@ -6,7 +6,7 @@ inputs = sys.argv[1]
 output = sys.argv[2]
 wordsep = re.compile(r'[%s\s]+' % re.escape(string.punctuation))
 
-conf = SparkConf().setAppName('word count')
+conf = SparkConf().setAppName('WordCountImproved')
 sc = SparkContext(conf=conf)
 
 assert sys.version_info >= (3, 5)  # make sure we have Python 3.5+
