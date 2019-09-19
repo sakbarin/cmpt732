@@ -35,7 +35,7 @@ def apply_constraints(page_info):
 			and page_info[PAGE_NAME].startswith("Special:") == False)
 
 def get_max(a,b):
-	if (a[1] > b[1]):
+	if (a[0] > b[0]):
 		return a
 	return b
 
@@ -43,7 +43,7 @@ def get_key(kv):
 	return kv[0]
 
 def tab_separated(kv):
-	return "%s \t (%s, %s)" % (kv[0], kv[1][1], kv[1][0])
+	return "%s \t (%s, %s)" % (kv[0], kv[1][0], kv[1][1])
 
 text = sc.textFile(inputs)
 
@@ -51,7 +51,7 @@ init_records = text.flatMap(separate_columns)
 updated_records = init_records.map(cast_count_type)
 filtered_records = updated_records.filter(apply_constraints)
 
-init_pairs = filtered_records.map(lambda x: (x[VISIT_DATE], (x[PAGE_NAME], x[VISIT_COUNT])))
+init_pairs = filtered_records.map(lambda x: (x[VISIT_DATE], (x[VISIT_COUNT], x[PAGE_NAME])))
 max_pairs = init_pairs.reduceByKey(get_max)
 
 outdata = max_pairs.sortBy(get_key).map(tab_separated)
