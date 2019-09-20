@@ -1,0 +1,39 @@
+1) In the WikipediaPopular class, it would be much more interesting to find the page that is most popular, not just the view count (as we did with Spark). What would be necessary to modify your class to do this? (You don't have to actually implement it.)
+
+Initially, we need to create a class named PageCountWritable(String, Long). The purpose of this class is to hold (page title, visit count) pair. 
+
+Then we have to set the output type of Mapper class to PageCountWritable. So we will write a (Text key, PageCountWritable result) to the output, where key equals to "date-time" and result holds (page name, visit count).
+
+In the Reducer class, we change both input and output type to PageCountWritable. When we iterate through Iterable<PageCountWritable>, we will have access to both page name and page count. If we find a new maximum, we will set the max value and its related page name to an object of type PageCountWritable. 
+
+Using context.write(Text, PageCountWritable) we write (date-time, (page name, page count)) to the output file.
+
+2) An RDD has many methods: it can do many more useful tricks than were at hand with MapReduce. Write a sentence or two to explain the difference between .map and .flatMap. Which is more like the MapReduce concept of mapping?
+
+- map() method applies a function to all the inputs and returns the same number of output as the number of input. But flatMap() method applies a function to all the inputs and then flattens and unions all output objects as a new list.
+
+- flatMap() is more like the MapReduce concept of mapping.
+
+3) Do the same for .reduce and .reduceByKey. Which is more like the MapReduce concept of reducing?
+
+- .reduce applies a function (commutative and associative binary operator) to each member of the input and calculates a value as the output. The result is only and only one for all the inputs.
+
+- .reduceByKey groups the input data <K,Vs> based on the keys and then applies a function to the values of each key. Number of the output will be equal to the numbers of unique keys.
+
+- .reduceByKey is more like the MapReduce concept of combining and reducing at the same time.
+
+4) When finding popular Wikipedia pages, the maximum number of page views is certainly unique, but the most popular page might be a tie. What would your improved Python implementation do if there were two pages with the same highest number of page views in an hour? What would be necessary to make your code find all of the pages views the maximum number of times? (Again, you don't have to actually implement this.)
+
+- A small change in the function passed to reduceByKey method (in my code: get_max() function) will solve the problem. Inside this function we need to add an "elif" statement to check whether the counts are equal or not. If they were equal, we could simply return a new tuple like (count, page1 + ', ' + page2).
+
+The code will look something like this:
+
+# 0 index holds page visits count
+
+def get_max(a,b):
+	if (a[0] > b[0]):
+		return a
+	elif (a[0] == b[0]):
+		return (a[0], a[1] + ", " + b[1])
+	else:
+		return b
