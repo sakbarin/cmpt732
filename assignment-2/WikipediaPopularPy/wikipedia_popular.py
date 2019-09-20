@@ -51,7 +51,7 @@ updated_records = init_records.map(cast_count_type)
 filtered_records = updated_records.filter(apply_constraints)
 
 init_pairs = filtered_records.map(lambda x: (x[VISIT_DATE], (x[VISIT_COUNT], x[PAGE_NAME])))
-max_pairs = init_pairs.reduceByKey(get_max)
+max_pairs = init_pairs.reduceByKey(get_max).coalesce(1) # remove coalesce(1) when you have a huge amount of data
 
 outdata = max_pairs.sortBy(get_key).map(tab_separated)
-outdata.repartition(1).saveAsTextFile(output)
+outdata.saveAsTextFile(output)
