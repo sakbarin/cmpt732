@@ -1,6 +1,5 @@
 from pyspark import SparkConf, SparkContext
 import sys
-import re, string
 
 # columns orders in tuple
 VISIT_DATE = 0
