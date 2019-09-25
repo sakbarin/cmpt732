@@ -27,8 +27,8 @@ def get_key(kv):
     return  kv[0]
 
 
-def tab_separated(kv):
-	return "%s \t %.3f" % (kv[0], kv[1])
+def convert_to_json(kv):
+    return json.dumps(kv)
 
 
 def main(inputs, output):
@@ -37,7 +37,8 @@ def main(inputs, output):
     comments = input_text.flatMap(separate_columns)
     combined_comments = comments.reduceByKey(add_pairs)
     reddit_averages = combined_comments.map(calc_averages)
-    output_data = reddit_averages.sortBy(get_key).map(tab_separated).coalesce(1)
+    output_data = reddit_averages.sortBy(get_key).map(convert_to_json).coalesce(1) # remove coalesce(1) for large data sets
+
     output_data.saveAsTextFile(output)
 
 
