@@ -36,9 +36,10 @@ def main(inputs, output):
 
     comments = input_text.flatMap(separate_columns)
     combined_comments = comments.reduceByKey(add_pairs)
-    comments_avg = combined_comments.map(calc_averages)
-    output_data = comments_avg.sortBy(get_key).map(tab_separated).coalesce(1)
+    reddit_averages = combined_comments.map(calc_averages)
+    output_data = reddit_averages.sortBy(get_key).map(tab_separated).coalesce(1)
     output_data.saveAsTextFile(output)
+
 
 if __name__ == '__main__':
     conf = SparkConf().setAppName('RedditAveragePy')
