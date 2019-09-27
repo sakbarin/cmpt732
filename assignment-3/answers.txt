@@ -28,7 +28,7 @@ sys	0m01.848s
 
 4) When experimenting with the number of partitions while estimating Euler's constant, you likely didn't see much difference for a range of values, and chose the final value in your code somewhere in that range. What range of partitions numbers was “good” (on the desktop/laptop where you were testing)?
 
-- In my opinion, the best range for the number of partitions that worked on my local computer was something between 8 and 32. When I set the number of partitions to smaller numbers (toward 1), I experienced a longer time to finish the process. Also, when I set the number of partitions to larger numbers (> 32), I had to wait longer for the calculations to finish.
+- In my opinion, the best range for the number of partitions that worked on my local computer was something between 8 and 64. When I set the number of partitions to smaller numbers (toward 1), I experienced a longer time to finish the process. Also, when I set the number of partitions to larger numbers (> 64), I had to wait longer for the calculations to finish.
 
 5) How much overhead does it seem like Spark adds to a job? How much speedup did PyPy get over the usual Python implementation? 
 
