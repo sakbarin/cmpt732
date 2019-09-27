@@ -11,23 +11,20 @@ def get_words(line):
 	for word in words:
 		yield (word.lower(), 1)
 
-
 def add(x, y):
 	return x + y
 
-
 def get_key(kv):
 	return kv[0]
-
 
 def output_format(kv):
 	k, v = kv
 	return '%s %i' % (k, v)
 
-
 def main(inputs, output):
 	text = sc.textFile(inputs)
-	words = text.flatMap(get_words)
+	input_repartitioned = text.repartition(numPartitions=8)
+	words = input_repartitioned.flatMap(get_words)
 	filtered_words = words.filter(lambda x: x != "")
 	word_count = filtered_words.reduceByKey(add)
 	outdata = word_count.sortBy(get_key).map(output_format)
