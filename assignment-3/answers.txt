@@ -1,55 +1,52 @@
 1) What was wrong with the original wordcount-5 data set that made repartitioning worth it? Why did the program run faster after?
 
-- The size of files in wordcount-5 data set varies significantly and they are not in an even range. i.e. the maximum file size is around 250MB while the minimum file size is about 90KB. This causes one partition to has extremely large size and some others to be relatively small. Therefore, one unlucky executor stucks in processing that large partition while others have finished processing their small partitions.
+- The size of files in wordcount-5 data set varies significantly (Max: 250MB, Min: 80KB). Therefore, one unlucky executor stucks in processing that large partition while others have finished processing their small partitions. 
 
-- Repartitioning made partition sizes even and smooth in a specific range (after applying repartition(), sizes in this example range between 80 and 100MB). So, All partitions will work parallelly and all of them finish their computations at a time similar to each other.
+- Although repartition() adds overhead and additional seconds to the whole timing, it's worth applying in this case since it makes the partition sizes even and reduces the time required to finish the process significantly. Timing reduced by 1 minute after applying repartition() method.
 
-- Although repartition() adds overhead and additional seconds to the whole timing, it's worth applying in this case since it makes the partition sizes even and reduces the time required to finish the process significantly.
-
-- Timing without repartition:
+- without repartition:
 real	3m54.642s
 user	0m23.960s
 sys	0m01.672s
 
-- Timing after applying repartition(numPartitions=8):
+- with repartition:
 real	2m47.545s
 user	0m21.912s
 sys	0m01.848s
 
-- Timing reduced by 1 minute after applying repartition() method.
-
 2) The same fix does not make this code run faster on the wordcount-3 data set. (It may be slightly slower?) Why? [For once, the answer is not “the data set is too small”.]
 
-- It might be because file sizes are distributed evenly in wordcount-3 data set and therefore we will have evenly distributed partitions. So, there is no need to apply repartition() because it will not help to reduce timing. Instead, we should expect the computation to take longer (a few seconds) because of extra computations and overhead we put on the computer.
+- File sizes are distributed evenly in wordcount-3 data set and we will have evenly distributed partitions. So, if we apply repartition(), we should expect the computation to take longer (a few seconds) because of extra computations and overhead we put on the computer.
 
 3) How could you modify the wordcount-5 input so that the word count code can process it and get the same results as fast as possible? (It's possible to get about another minute off the running time.)
 
-- One solution to get better timing will be to split large files into some smaller parts using split Linux command. So that we will have files sizes in a specific range (neither very large nor very small). This will help to gain maximum parallelism in action without the overhead.
+- One solution to get better timing is to split large files into some smaller files using Linux "split" command. So that we will have files sizes in a specific range (neither very large nor very small).
 
 4) When experimenting with the number of partitions while estimating Euler's constant, you likely didn't see much difference for a range of values, and chose the final value in your code somewhere in that range. What range of partitions numbers was “good” (on the desktop/laptop where you were testing)?
 
-- In my opinion, the best range for the number of partitions that worked on my local computer was something between 8 and 64. When I set the number of partitions to smaller numbers (toward 1), I experienced a longer time to finish the process. Also, when I set the number of partitions to larger numbers (> 64), I had to wait longer for the calculations to finish.
+- The best range that worked on my computer was something between 8 and 64. Numbers smaller than 8 and greater than 64, lead to a longer time for the calculations to finish.
 
 5) How much overhead does it seem like Spark adds to a job? How much speedup did PyPy get over the usual Python implementation? 
 
-- When I ran parallel multi-thread Euler (for 1,000,000,000 samples) on my local computer using python, I got following timings:
+- multi-thread Euler - Python:
 real	5m24.687s
 user	0m20.680s
 sys	0m01.029s
 
-- While I got the following results as I tested multi-thread Euler using PyPy:
+- multi-thread Euler - PyPy:
 real	1m20.980s
 user	0m18.806s
 sys	0m00.974s
 
-- Comparing these results, we can find out that using python took 4 times longer than using PyPy.
+- Multi-threaded Euler using Python took 4 minutes longer than PyPy in this example which is a considerable amount.
 
-- Following results show the timings for running single-threaded Euler using PyPy:
+- single-threaded Euler - PyPy:
 real	1m42.687s
 user	1m41.957s
 sys	0m00.048s
 
-- Results show that running single-threaded Euler using PyPy is still much faster than using python. However, the timing for single-threaded Euler using PyPy took 20 seconds longer compared to timing I gained when using multi-threaded Euler using PyPy which is not a significant amount.
+- Single-threaded Euler (PyPy) is surprisingly much faster than multi-threaded Euler (Python).
+- Single-threaded Euler (PyPy) took 20 seconds longer than multi-threaded Euler (PyPy) which is not a significant amount.
 
 - These are the timings for running single-threaded Euler using c:
 real	0m58.671s
