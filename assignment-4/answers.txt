@@ -20,9 +20,8 @@ sys	0m01.660s		0m01.512s
 
 3) Under what conditions will the broadcast join be faster than an actual join?
 
-- If we want to join to two RDDs that one of them has a small limited number of objects and the other is very large, it is a good idea to convert the small RDD to python object and use it's values for computations on the larger RDD.
+- When one RDD is large (M objects) and the other is considerably small (N objects - a few objects), it will be a good idea to use broadcast() to keep the small RDD in memory shared between executors. By reducing number of joined objects (from: M*N to: M), we reduced sort and shuffle process time which leads to faster computation. The point is that broadcasted RDD should be relatively small to fit in executor memory.
 
 4) When will the broadcast join be slower? 
 
-- Since broadcast() converts a RDD to a python object in memory, it's a heavy computation that needs a lot of resources. So, if the RDD has many keys and we convert it using broadcast() it will definitely be slower than using join.
-
+- Since broadcast() converts a RDD to a python object in memory, it's a heavy computation that needs a lot of resources. So, if both RDDs have many rows and doesn't fit in memory then using broadcast() will definitely be slower than using join.
