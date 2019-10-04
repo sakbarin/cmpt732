@@ -17,16 +17,13 @@ def add_pairs(pair1, pair2):
 
 
 def calc_averages(kv):
-    key, value = (kv[0], kv[1])
-    count = value[0]
-    sum = value[1]
-    return (key, (sum * 1.0) / count)
+    key, (count, sum) = (kv[0], kv[1])
+    return (key, sum / count) # ( subreddit , avg )
 
 
 def calc_scores(kv):
-    key, value = (kv[0], kv[1])
-    score = value[1][0] / value[0]
-    return (value[1][1], score)
+    (key, (average, (score, author))) = (kv[0], kv[1]) # (subreddit, (average, (score, author)))
+    return (author, score / average)
 
 
 def get_value(kv):
@@ -43,9 +40,9 @@ def main(inputs, output):
     comments = input_text.flatMap(separate_columns).cache()
     combined_comments = comments.reduceByKey(add_pairs)
     reddit_averages = combined_comments.map(calc_averages)
-    pos_reddit_averages = reddit_averages.filter(lambda x: x[1] > 0)
+    pos_reddit_averages = reddit_averages.filter(lambda x: x[1] > 0) # (subreddit, average)
 
-    comments_data = comments.map(lambda x: (x[0], (x[1][1], x[1][2])))
+    comments_data = comments.map(lambda x: (x[0], (x[1][1], x[1][2]))) # (subreddit, (score, author))
     comments_joined = pos_reddit_averages.join(comments_data)
 
     author_scores = comments_joined.map(calc_scores)
