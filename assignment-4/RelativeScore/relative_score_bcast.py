@@ -17,16 +17,14 @@ def add_pairs(pair1, pair2):
 
 
 def calc_averages(kv):
-    key, value = (kv[0], kv[1])
-    count = value[0]
-    sum = value[1]
-    return (key, (sum * 1.0) / count)
+    (key, (count, sum)) = (kv[0], kv[1])
+    return (key, sum / count)
 
 
-def calc_scores(kv, average_values):
-    key, value = (kv[0], kv[1])
-    score = value[1] / average_values[key]
-    return (value[2], score)
+def calc_scores(kv, averages):
+    (key, (one, score, author)) = (kv[0], kv[1])
+    average = averages.value[key]
+    return (author, score / average)
 
 
 def get_value(kv):
@@ -45,10 +43,9 @@ def main(inputs, output):
     reddit_averages = combined_comments.map(calc_averages)
     pos_reddit_averages = reddit_averages.filter(lambda x: x[1] > 0)
 
-    average_values = dict(pos_reddit_averages.collect())
-    sc.broadcast(average_values)
+    averages = sc.broadcast(dict(pos_reddit_averages.collect()))
 
-    author_scores = comments.map(lambda x: calc_scores(x, average_values))
+    author_scores = comments.map(lambda x: calc_scores(x, averages))
     output_data = author_scores.sortBy(get_value, ascending=False).map(convert_to_json)
     output_data.saveAsTextFile(output)
 
