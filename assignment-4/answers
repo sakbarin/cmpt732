@@ -1,0 +1,28 @@
+1) How much of a difference did the .cache() make in your Reddit ETL code?
+
+- It lead to 15 seconds time saving on reddit-4 on cluster:
+
+cache()				no-cache()
+real	0m41.478s		0m56.861s
+user	0m18.984s		0m19.228s
+sys	0m1.516s		0m01.696s
+
+- and also lead to 5 seconds time saving on reddit-3 on cluster:
+
+cache()				no-cache()
+real	0m37.940s		0m42.268s
+user	0m21.160s		0m21.648s
+sys	0m01.660s		0m01.512s
+
+2) When would .cache() make code slower than without?
+
+- if each RDD is accessed only once through the code, using cache() will not help and in contrast, it will add to total run-time seconds. Because cache() moves evaluated RDD to memory. Otherwise, appying .cache() is useful when we want to re-use a same RDD multiple times in different computations.
+
+3) Under what conditions will the broadcast join be faster than an actual join?
+
+- If we want to join to two RDDs that one of them has a small limited number of objects and the other is very large, it is a good idea to convert the small RDD to python object and use it's values for computations on the larger RDD.
+
+4) When will the broadcast join be slower? 
+
+- Since broadcast() converts a RDD to a python object in memory, it's a heavy computation that needs a lot of resources. So, if the RDD has many keys and we convert it using broadcast() it will definitely be slower than using join.
+

@@ -46,6 +46,7 @@ def main(inputs, output):
     pos_reddit_averages = reddit_averages.filter(lambda x: x[1] > 0)
 
     average_values = dict(pos_reddit_averages.collect())
+    sc.broadcast(average_values)
 
     author_scores = comments.map(lambda x: calc_scores(x, average_values))
     output_data = author_scores.sortBy(get_value, ascending=False).map(convert_to_json)
