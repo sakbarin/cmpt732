@@ -17,7 +17,7 @@ def add_pairs(pair1, pair2):
 
 
 def calc_averages(kv):
-    key, (count, sum) = (kv[0], kv[1])
+    (key, (count, sum)) = (kv[0], kv[1])
     return (key, sum / count) # ( subreddit , avg )
 
 
