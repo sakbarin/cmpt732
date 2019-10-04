@@ -20,15 +20,11 @@ def filter_subreddits_with_e(input_tuple):
 
 
 def filter_gte_0(input_tuple):
-    if (input_tuple[SCORE] >= 0):
-        return True
-    return False
+    return (input_tuple[SCORE] >= 0)
 
 
 def filter_lt_0(input_tuple):
-    if (input_tuple[SCORE] < 0):
-        return True
-    return False
+    return (input_tuple[SCORE] < 0)
 
 
 def convert_to_json(kv):
