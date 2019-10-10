@@ -46,6 +46,7 @@ def main(inputs, output):
     # final join
     df_joined = df_cols.join(df_max_bc, [df_cols['hour'] == df_max_bc['m_hour'], df_cols['views'] == df_max_bc['m_views']] , 'right_outer')
 
+    # sort descending
     df_sorted = df_joined.sort(df_joined['hour'].desc()).select(df_joined['hour'], df_joined['title'], df_joined['views'])
 
     # write to output
