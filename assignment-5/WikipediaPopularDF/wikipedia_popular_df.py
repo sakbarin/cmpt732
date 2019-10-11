@@ -47,7 +47,7 @@ def main(inputs, output):
     df_joined = df_cols.join(df_max_bc, [df_cols['hour'] == df_max_bc['m_hour'], df_cols['views'] == df_max_bc['m_views']] , 'inner')
 
     # sort descending
-    df_sorted = df_joined.sort(df_joined['hour'].desc()).select(df_joined['hour'], df_joined['title'], df_joined['views'])
+    df_sorted = df_joined.sort(df_joined['hour']).select(df_joined['hour'], df_joined['title'], df_joined['views'])
 
     # write to output
     df_sorted.write.json(output, compression='gzip', mode='overwrite')
