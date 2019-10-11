@@ -24,35 +24,60 @@ OBSERVATION_SCHEMA = types.StructType([
 def main(inputs, output):
     # initial data frame
     df_init = spark.read.csv(inputs, schema=OBSERVATION_SCHEMA)
+    df_init.createOrReplaceTempView("VW_Temp")
 
     # filter1 : qflag = null
-    df_filter = df_init.filter(df_init['qflag'].isNull()).cache()
-    df_cols = df_filter.select(df_filter['station'], df_filter['observation'], df_filter['date'], df_filter['value'])
+    df_filter = spark.sql("SELECT station, observation, date, value "
+                          "FROM VW_Temp "
+                          "WHERE qflag IS NULL").cache()
+    df_filter.createOrReplaceTempView("VW_Cols")
 
-    # get max and min data frames
-    df_max = df_cols.filter(df_cols['observation'] == 'TMAX').withColumnRenamed('value', 'max_value')
-    df_min = df_cols.filter(df_cols['observation'] == 'TMIN').withColumnRenamed('value', 'min_value')
+
+    # get max data frame
+    df_max = spark.sql("SELECT station, observation, date, value AS max_value "
+                       "FROM VW_Cols "
+                       "WHERE observation = 'TMAX'")
+    df_max.createOrReplaceTempView("VW_Max")
+
+
+    # get min data frame
+    df_min = spark.sql("SELECT station, observation, date, value AS min_value "
+                       "FROM VW_Cols "
+                       "WHERE observation = 'TMIN'")
+    df_min.createOrReplaceTempView("VW_Min")
+
 
     # join max and min data frames
-    df_joined = df_max.join(df_min, ['date', 'station'], 'inner')
+    df_joined = spark.sql("SELECT VMX.date, VMX.station, max_value, min_value "
+                          "FROM VW_Max VMX "
+                          "     INNER JOIN VW_Min VMN "
+                          "         ON VMX.station = VMN.station AND VMX.date = VMN.date")
+    df_joined.createOrReplaceTempView("VW_Joined")
+
 
     # calc temperature range
-    df_temp_diff = df_joined.select(df_joined['date'], df_joined['station'], ( (df_joined['max_value'] - df_joined['min_value']) / 10 ).alias('range')).cache()
+    df_temp_diff = spark.sql("SELECT date, station, (max_value - min_value) / 10 AS range "
+                             "FROM VW_Joined").cache()
+    df_temp_diff.createOrReplaceTempView("VW_TempDiff")
+
 
     # group and get date, max range
-    df_max_range = df_temp_diff.groupBy(df_temp_diff['date']).agg(functions.max(df_temp_diff['range']).alias('range'))
+    df_max_range = spark.sql("SELECT date, max(range) AS range "
+                             "FROM VW_TempDiff "
+                             "GROUP BY date")
+    df_max_range.createOrReplaceTempView("VW_MaxRange")
 
-    # broadcast max range
-    df_max_range_bc = functions.broadcast(df_max_range)
 
     # join max range and all ranges to get stations included
-    df_final = df_temp_diff.join(df_max_range_bc, ['date', 'range'], 'inner')
+    df_final = spark.sql("SELECT VWTD.date, VWTD.station, VWMR.range "
+                         "FROM VW_TempDiff VWTD "
+                         "      INNER JOIN VW_MaxRange VWMR "
+                         "          ON VWTD.date = VWMR.date AND VWTD.range = VWMR.range "
+                         "ORDER BY VWTD.Date")
 
-    # sort data
-    df_sorted = df_final.sort(df_final['date']).select(df_final['date'], df_final['station'], df_final['range'])
 
     # write to the output
-    df_sorted.write.csv(output, mode='overwrite')
+    df_final.write.csv(output, mode='overwrite')
 
 if __name__ == '__main__':
     inputs = sys.argv[1]
