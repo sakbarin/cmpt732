@@ -37,20 +37,22 @@ def main(inputs, output):
     df_cols = f3_title.select(path_to_hour(f3_title['filename']).alias('hour'), f3_title['title'], f3_title['views']).cache()
 
     # get hour and max of each hour
-    df_max = df_cols.groupBy(df_cols['hour']).agg(functions.max(df_cols['views']).alias('views'))
-    df_max_rename = df_max.select(df_max['hour'].alias('m_hour'), df_max['views'].alias('m_views'))
+    df_max = df_cols.groupBy(df_cols['hour']).agg(functions.max(df_cols['views']).alias('m_views')).withColumnRenamed('hour', 'm_hour')
 
     # broadcast df_max
-    df_max_bc = functions.broadcast(df_max_rename)
+    df_max_bc = functions.broadcast(df_max)
 
     # final join
-    df_joined = df_cols.join(df_max_bc, [df_cols['hour'] == df_max_bc['m_hour'], df_cols['views'] == df_max_bc['m_views']] , 'inner')
+    df_joined = df_cols.join(df_max, [df_cols['hour'] == df_max['m_hour'], df_cols['views'] == df_max['m_views']] , 'inner')
 
     # sort descending
     df_sorted = df_joined.sort(df_joined['hour']).select(df_joined['hour'], df_joined['title'], df_joined['views'])
 
     # write to output
-    df_sorted.write.json(output, compression='gzip', mode='overwrite')
+    df_sorted.coalesce(1).write.json(output, compression='gzip', mode='overwrite')
+
+    # explain
+    df_sorted.explain()
 
 if __name__ == '__main__':
     inputs = sys.argv[1]
