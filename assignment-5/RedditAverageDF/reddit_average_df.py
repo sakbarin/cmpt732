@@ -3,7 +3,7 @@ assert sys.version_info >= (3, 5) # make sure we have Python 3.5+
 
 # initial config
 from pyspark.sql import SparkSession, functions, types
-spark = SparkSession.builder.appName('WeatherETL').getOrCreate()
+spark = SparkSession.builder.appName('RedditAverageDF').getOrCreate()
 assert spark.version >= '2.4' # make sure we have Spark 2.4+
 spark.sparkContext.setLogLevel('WARN')
 sc = spark.sparkContext
@@ -40,19 +40,17 @@ def main(inputs, output):
     # read comments
     comments = spark.read.json(inputs, schema=comments_schema)
 
-    # prepare key-value
-    comments_kv = comments.select(comments['subreddit'], comments['score'])
-
     # group by
-    reddit_groups = comments_kv.groupBy(comments_kv['subreddit'])
+    reddit_groups = comments.groupBy(comments['subreddit'])
 
     # find averages
     reddit_averages = reddit_groups.agg(functions.avg(comments['score']))
 
-    reddit_averages.explain()
-
     # write to output
     reddit_averages.write.csv(output, mode='overwrite')
+
+    reddit_averages.explain()
+
 
 if __name__ == '__main__':
     inputs = sys.argv[1]
