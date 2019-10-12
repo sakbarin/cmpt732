@@ -49,7 +49,7 @@ def main(inputs, output):
     df_sorted = df_joined.sort(df_joined['hour']).select(df_joined['hour'], df_joined['title'], df_joined['views'])
 
     # write to output
-    df_sorted.coalesce(1).write.json(output, compression='gzip', mode='overwrite')
+    df_sorted.write.json(output, compression='gzip', mode='overwrite')
 
     # explain
     df_sorted.explain()
