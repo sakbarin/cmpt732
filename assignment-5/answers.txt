@@ -1,0 +1,86 @@
+1) In the Reddit averages execution plan, which fields were loaded? How was the average computed (and was a combiner-like step done)?
+
+- "subreddit" and "score" fields were only loaded into memory as below: 
+ReadSchema: struct<score:bigint,subreddit:string> was loaded into the memory.
+
+- The physical plan shows a partial_avg(score#22L), so it seems that a combiner-like step is done which computes average for each subreddit key in each executor.
+
+*(2) HashAggregate(keys=[subreddit#24], functions=[avg(score#22L)])
++- Exchange hashpartitioning(subreddit#24, 200)
+   +- *(1) HashAggregate(keys=[subreddit#24], functions=[partial_avg(score#22L)])
+      +- *(1) FileScan json [score#22L,subreddit#24] Batched: false, Format: JSON, Location: InMemoryFileIndex[hdfs://nml-cloud-149.cs.sfu.ca:8020/courses/732/reddit-1], PartitionFilters: [], PushedFilters: [], ReadSchema: struct<score:bigint,subreddit:string>
+
+2) What was the running time for your Reddit averages implementations in the five scenarios described above? How much difference did Python implementation make (PyPy vs the default CPython)? Why was it large for RDDs but not for DataFrames?
+
+- Timings are shown here:
+
+run-time using MapReduce (Java)
+real	2m44.116s
+user	0m5.816s
+sys	0m0.464s
+
+run-time using DataFrame (CPython)
+real	0m56.819s
+user	0m22.220s
+sys	0m1.728s
+
+run-time using RDD (CPython)
+real	2m53.214s
+user	0m18.772s
+sys	0m1.364s
+
+run-time using DataFrame (PyPy) 
+real	0m58.631s
+user	0m24.700s
+sys	0m2.068s
+
+run-time using RDD (PyPy)
+real	2m5.747s
+user	0m19.136s
+sys	0m1.592s
+
+- Run time using Python is slower than that of PyPy in all cases. 
+The difference between Python and PyPy while using DataFrames is not considerable (2 seconds only which might change based on available cluster resources). However, when it comes to RDDs, this difference is significant (PyPy is about 49 seconds faster than Python). Totally, run-time using RDD was bigger in comparison with DataFrame in both Python and PyPy cases.
+
+3) How much of a difference did the broadcast hint make to the Wikipedia popular code's running time (and on what data set)?
+
+- The difference was about (22 seconds) on pagecounts-3 dataset.
+
+with broadcast:
+real	1m38.961s
+user	0m34.764s
+sys	0m2.360s
+
+no broadcast:
+real	2m0.346s
+user	0m39.044s
+sys	0m2.796s
+
+4) How did the Wikipedia popular execution plan differ with and without the broadcast hint?
+
+- with broadcast, spark uses "BroadcastHashJoin" when it wants to join the large DataFrame with the small broadcasted DataFrame. 
+And in a part of the code that we use broadcast() methd, a "BroadcastExchange" object is used here. (...) shows identical code in both cases.
+
+...
+      +- *(3) BroadcastHashJoin [hour#15, views#2L], [m_hour#42, m_views#43L], Inner, BuildRight
+		...
+         +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, true], input[1, bigint, false]))
+		...
+
+In contrast, without broadcast(), spark has used "SortMergeJoin" to join two DataFrames. It should also be mentioned that some operations such as "Exchange" and "Sort" are shown two times here when we don't use broadcast() method. So we can conclude that operation time is absolutely higher in this case because of two heavy tasks.
+
+...
+      +- *(6) SortMergeJoin [hour#15, views#2L], [m_hour#42, m_views#43L], Inner
+         :- *(2) Sort [hour#15 ASC NULLS FIRST, views#2L ASC NULLS FIRST], false, 0
+         :  +- Exchange hashpartitioning(hour#15, views#2L, 200)
+		...
+         +- *(5) Sort [m_hour#42 ASC NULLS FIRST, m_views#43L ASC NULLS FIRST], false, 0
+            +- Exchange hashpartitioning(m_hour#42, m_views#43L, 200)
+		...
+
+
+5) For the weather data question, did you prefer writing the “DataFrames + Python methods” style, or the “temp tables + SQL syntax” style form solving the problem? Which do you think produces more readable code? 
+
+- Although working with DataFrames + Python is new and a bit strange to me, I was more comfortable working with it since i don't have to struggle with SQL syntax and naming tables, views, etc. 
+
+- In my opinion, DataFrames + Python is more readable.
