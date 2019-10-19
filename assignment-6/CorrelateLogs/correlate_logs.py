@@ -2,12 +2,14 @@ from pyspark import SparkConf, SparkContext
 from pyspark.sql import SparkSession, functions
 import sys
 import re
+import math
 
 assert sys.version_info >= (3, 5) # make sure we have Python 3.5+
 
 LINE_RE = re.compile(r'^(\S+) - - \[(\S+) [+-]\d+\] \"[A-Z]+ (\S+) HTTP/\d\.\d\" \d+ (\d+)$')
 HOST = 1
 BYTES = 4
+
 
 def separate_columns(input_line):
     columns = LINE_RE.split(input_line)
@@ -27,24 +29,37 @@ def get_sigma_values(datapoint):
     return (1, xi, pow(xi, 2), yi, pow(yi, 2), xi * yi)
 
 
+def add_sigma_values(a,b):
+    (one1, x1, x1_sq, y1, y1_sq, x1y1) = a
+    (one2, x2, x2_sq, y2, y2_sq, x2y2) = b
+    
+    return (one1 + one2, x1 + x2, x1_sq + x2_sq, y1 + y2, y1_sq + y2_sq, x1y1 + x2y2)
+
+
+def calc_r(a):
+    (n, x, x_sq, y, y_sq, xy) = a
+    
+    numerator = (n * xy) - (x * y)    
+    denominator_1st_sqrt = math.sqrt((n * x_sq - (x * x)))
+    denominator_2nd_sqrt = math.sqrt((n * y_sq - (y * y)))
+    
+    return (numerator / (denominator_1st_sqrt * denominator_2nd_sqrt))
+
+
 def main(inputs):
     input_text = sc.textFile(inputs)
 
     init_logs = input_text.flatMap(separate_columns)
     logs_datapoint = init_logs.reduceByKey(create_data_points)
-    sigma_values = logs_datapoint.map(get_sigma_values)
+    sigma_base_values = logs_datapoint.map(get_sigma_values)
 
-    df = sigma_values.toDF(['one', 'xi', 'xi_2', 'yi', 'yi_2', 'xiyi'])
+    sum_sigma_values = sigma_base_values.reduce(add_sigma_values)
+    r = calc_r(sum_sigma_values)
 
-    df_calc = df.select( \
-                (functions.sum(df['one']) * functions.sum(df['xiyi']) - functions.sum(df['xi']) * functions.sum(df['yi'])).alias('top'), \
-                (functions.sqrt(functions.sum(df['one']) * functions.sum(df['xi_2']) - functions.pow(functions.sum(df['xi']), 2)) * functions.sqrt(functions.sum(df['one']) * functions.sum(df['yi_2']) - functions.pow(functions.sum(df['yi']), 2))).alias('bottom') \
-                )
+    print("\n\n\n---------------------------")
+    print("r: %f , r^2: %f" % (r, math.pow(r, 2)))
+    print("---------------------------\n\n")
 
-    df_r = df_calc.select((df_calc['top'] / df_calc['bottom']).alias('r'))
-    df_final = df_r.select(df_r['r'], functions.pow(df_r['r'], 2).alias('r^2'))
-
-    df_final.show()
 
 if __name__ == '__main__':
     conf = SparkConf().setAppName('CorrelateLogsPy')
