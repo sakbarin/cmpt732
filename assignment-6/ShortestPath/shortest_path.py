@@ -55,8 +55,8 @@ def main(inputs, outputs, source_node, dest_node):
         # add new paths to known_paths
         known_paths = known_paths.unionAll(new_paths).cache()
 
-        # to write all paths in one file for debug
-        known_paths.coalesce(1).write.csv(outputs + '/iter-' + str(i), compression="gzip")
+        # to write generated paths in files for debug
+        known_paths.write.json(outputs + '/iter-' + str(i))
 
         # break out of loop when first path found
         if (known_paths.where(known_paths['node'] == dest_node).count() > 0):
@@ -79,14 +79,20 @@ def main(inputs, outputs, source_node, dest_node):
         parent_node = edge[0][1]
 
         # insert source node to output path
-        output_path.insert(0, parent_node)
+        output_path.insert(0, int(parent_node))
 
     # if there is only one item in output_path, there is not path available
-    if (len(output_path) == 1):
+    if (len(output_path) == 1 and source_node != dest_node):
         output_path = ['no path exists from node ' + str(source_node) + ' to node ' + str(dest_node) + '!']
 
     # write path to output
-    final_output = sc.parallelize(output_path).coalesce(1) # coalesce(1) to write all paths in a single file
+    print("\n\n\n------------------------")
+    print("Path: %s" % (output_path))
+    print("Path: [if any] is also generated in %s" % (outputs + '/path'))
+    print("------------------------\n\n")
+
+    # you can add .coalesce(1) to view path in a single file
+    final_output = sc.parallelize(output_path)
     final_output.saveAsTextFile(outputs + '/path')
 
 
