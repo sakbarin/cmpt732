@@ -21,7 +21,7 @@ NoHostAvailable: ('Unable to complete the operation against any hosts', {<Host: 
 
 5) What was the CREATE TABLE statement you used for the nasalogs table? What was the primary key you choose, and why?
 
-- I declared a column named id (of type UUID to be uniqe) and set (host, id) as the primary key. Obviously, host will be the partition key.
+- I declared a column named id (of type TEXT) and I generate a UUID for it to be uniqe. I set (host, id) as the primary key. Obviously, host will be the partition key.
 
 CREATE TABLE nasalogs ( 
 	host TEXT, 
