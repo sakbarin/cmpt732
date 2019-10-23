@@ -1,0 +1,45 @@
+1) What happened when you inserted another row with the same primary key as an existing row?
+
+- It worked like an update command and updated the value of 'data' column for the row where its id = 2.
+
+2) What happened when you query a keyspace with replication factor 1 and one node down? How did it behave with replication factor 2 and a node down?
+
+- When (replication_factor: 2) or (replication_factor: 1 and unreliable node is active), I didn't notice any problem and everything seems to work fine. I was able to query whatever I want.
+
+- When the (replication factor: 1 and unreliable node is inactive), I was not able to query all records. The query worked for records where (id=1,3,4,5) but not for record where (id=2). In this case, we will only have one instance of each record on a node. So, we will not be able to retrieve records stored on unreliable node since there is no other replication of it on other nodes.
+
+- Returned error was like:
+NoHostAvailable: ('Unable to complete the operation against any hosts', {<Host: 199.60.17.59 datacenter1>: Unavailable('Error from server: code=1000 [Unavailable exception] message="Cannot achieve consistency level ONE" info={\'required_replicas\': 1, \'alive_replicas\': 0, \'consistency\': \'ONE\'}',)})
+
+3) How did the consistency level affect the results with the node up/down?
+
+- When we set CONSISTENCY to ONE, it means that it will be enough to store data in only one node. So eveything will work fine with even one  down node. But when CONSISTENCY ALL, it means that data should be stored on all nodes in the cluster. So, when all nodes are up I didn't see any problem. But when one node is down, I was not able to store any data.
+
+4) Which of the WHERE id=? values returned successfully with CONSISTENCY ALL when one of the nodes was down? Why do you think some could be returned but not others?
+
+- I got the result successfully for records where id=1,4,6 when CONSISTENCY was set to ALL and unreliable node was down. We have 3 nodes in the cluster and readability is based on response from all replicas. Since we have set 'replication_factor': 2, we will have two replication for each data. So, when we perform a select query, we will get records that have replication on two live nodes. If one of the replications is on the down node, this node will not acknowledge, so the select query will not work.
+
+5) What was the CREATE TABLE statement you used for the nasalogs table? What was the primary key you choose, and why?
+
+- I declared a column named id (of type UUID to be uniqe) and set (host, id) as the primary key. Obviously, host will be the partition key.
+
+CREATE TABLE nasalogs ( 
+	host TEXT, 
+	id TEXT, 
+	datetime TIMESTAMP, 
+	path TEXT, 
+	bytes INT, 
+	PRIMARY KEY (host, id) 
+);
+
+6) What was the CQL query you used (or tried) to get the total number of bytes? 
+
+I used two solutions to see if I can get the total number of bytes, both of them failed.
+
+- SELECT SUM(bytes) FROM nasalogs;
+
+I also tried another solution:
+
+- SELECT SUM(hbytes) FROM (SELECT host, SUM(bytes) AS hbytes FROM nasalogs GROUP BY host)
+
+It turned out that inner select is also not allowed in CQL.
