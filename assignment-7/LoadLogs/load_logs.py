@@ -11,7 +11,7 @@ BATCH_SIZE = 250
 # drop table if exists, and re-create it
 def drop_create_table(table):
     session.execute("DROP TABLE IF EXISTS " + table)
-    session.execute("CREATE TABLE " + table + " ( host TEXT, id UUID, datetime TIMESTAMP, path TEXT, bytes INT, PRIMARY KEY (host, id) )")
+    session.execute("CREATE TABLE " + table + " ( host TEXT, id TEXT, datetime TIMESTAMP, path TEXT, bytes INT, PRIMARY KEY (host, id) )")
 
 
 # change input line to an structured tuple
@@ -20,7 +20,7 @@ def separate_columns(line):
 
     if (len(columns) == 6):
         HOST = columns[1]
-        ID = uuid.uuid4()
+        ID = str(uuid.uuid4())
         DATETIME = datetime.strptime(columns[2], "%d/%b/%Y:%H:%M:%S")
         PATH = columns[3]
         BYTE = int(columns[4])
