@@ -21,7 +21,7 @@ def separate_columns(line):
     if (len(columns) == 6):
         HOST = columns[1]
         ID = uuid.uuid4()
-        DATETIME = datetime.timestamp(datetime.strptime(columns[2], "%d/%b/%Y:%H:%M:%S"))
+        DATETIME = datetime.strptime(columns[2], "%d/%b/%Y:%H:%M:%S")
         PATH = columns[3]
         BYTE = int(columns[4])
         return [HOST, ID, DATETIME, PATH, BYTE]
@@ -80,7 +80,7 @@ if (__name__ == '__main__'):
     keyspace = sys.argv[2]
     table = sys.argv[3]
 
-    cluster = Cluster(["199.60.17.32"])
+    cluster = Cluster(['199.60.17.32', '199.60.17.65'])
     session = cluster.connect(keyspace)
 
     main(inputs, table)
