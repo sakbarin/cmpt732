@@ -43,7 +43,8 @@ def main(inputs, keyspace, table):
     drop_create_table(session, table)
 
     logs_text = sc.textFile(inputs)
-    logs_rdd = logs_text.map(separate_columns)
+    logs_repartitioned = logs_text.repartition(128)
+    logs_rdd = logs_repartitioned.map(separate_columns)
     logs_valid = logs_rdd.filter(lambda x: x is not None)
     logs_df = spark.createDataFrame(logs_valid, ['host', 'id', 'datetime', 'path', 'bytes'])
 
