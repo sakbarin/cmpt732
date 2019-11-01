@@ -1,0 +1,62 @@
+1) What did you see in the execution plan for the “join in Spark” solution? Why was the execution so fast (and the memory usage so small)? 
+
+- This is because of applying PushedFilter. We applied a filter on data frame to get a number of records with specific IDs. This filter is pushed down [three times in this question] to database to reduce the amount of data passed between database and the Apache Spark engine. This leads to removal of unwanted records and keeping only a small number of records required for operation. So, Spark performs joins on dataframes using only a small portion of 39M records data frame which will be fast.
+
+ObjectHashAggregate(keys=[orderkey#0, totalprice#8], functions=[collect_set(name#55, 0, 0)])
++- ObjectHashAggregate(keys=[orderkey#0, totalprice#8], functions=[partial_collect_set(name#55, 0, 0)])
+   +- *(4) Sort [orderkey#0 ASC NULLS FIRST], true, 0
+      +- Exchange rangepartitioning(orderkey#0 ASC NULLS FIRST, 200)
+         +- *(3) Project [orderkey#0, totalprice#8, name#55]
+            +- *(3) BroadcastHashJoin [partkey#25], [partkey#50], Inner, BuildRight
+               :- *(3) Project [orderkey#0, totalprice#8, partkey#25]
+               :  +- *(3) BroadcastHashJoin [orderkey#0], [orderkey#19], Inner, BuildLeft
+               :     :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)))
+               :     :  +- *(1) Filter (cast(orderkey#0 as string) IN (151201,986499,28710,193734,810689) && isnotnull(orderkey#0))
+               :     :     +- *(1) Scan org.apache.spark.sql.cassandra.CassandraSourceRelation@77815665 [orderkey#0,totalprice#8] PushedFilters: [IsNotNull(orderkey)], ReadSchema: struct<orderkey:int,totalprice:decimal(38,18)>
+               :     +- *(3) Filter ((cast(orderkey#19 as string) IN (151201,986499,28710,193734,810689) && isnotnull(orderkey#19)) && isnotnull(partkey#25))
+               :        +- *(3) Scan org.apache.spark.sql.cassandra.CassandraSourceRelation@428c8499 [orderkey#19,partkey#25] PushedFilters: [IsNotNull(orderkey), IsNotNull(partkey)], ReadSchema: struct<orderkey:int,partkey:int>
+               +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)))
+                  +- *(2) Filter isnotnull(partkey#50)
+                     +- *(2) Scan org.apache.spark.sql.cassandra.CassandraSourceRelation@6f483d7e [partkey#50,name#55] PushedFilters: [IsNotNull(partkey)], ReadSchema: struct<partkey:int,name:string>
+
+2) What was the CREATE TABLE statement you used for the orders_parts table? 
+
+- Follwing is the script used to create "orders_parts" table: 
+
+CREATE TABLE orders_parts (
+    orderkey int,
+    custkey int,
+    orderstatus text,
+    totalprice decimal,
+    orderdate date,
+    order_priority text,
+    clerk text,
+    ship_priority int,
+    comment text,
+    part_names set<text>,
+    PRIMARY KEY (orderkey)
+);
+
+3) What were the running times of the two tpch_orders_* programs on the tpch2 data on the cluster? These orderkeys have results in that data set: 2579142 2816486 586119 441985 2863331. 
+
+- tpch_orders_denorm program was [30 seconds] faster.
+
+- The running time using tpch_orders_denorm was:
+real	0m49.403s
+user	0m27.456s
+sys	0m2.216s
+
+- The running time using tpch_orders_df was: 
+real	1m19.472s
+user	0m42.932s
+sys	0m3.304s
+
+4) Consider the logic that you would have to implement to maintain the denormalized data (assuming that the orders table had the part_names column in the main data set). Write a few sentences on what you'd have to do when inserting/updating/deleting data in this case. 
+
+- When inserting a new record into orders_parts, the program should get the target parts, convert it to a set and then writes them to part_names columns. In this case we won't have lots of problem since it's a new record with corresponding part_names. Before that, we have to ensure that part_names column has a value and it's not NULL.
+
+- The problem arises when updating the name of a part. In this case, we have to read the whole orders_parts table and filter records which its part_names column contains the current value of part name. Then, change it to the new value in each filtered record and update record.
+
+- Another problem arises when deleting a part. In this scenario, we should again search whole order_parts table for records which its part_names column contains the current part name value. Delete this value from part_names set of each record. And update this column value to the new value.
+
+- One solution to this problem might be using triggers that fires whenever a new record is inserted, updated, deleted.
