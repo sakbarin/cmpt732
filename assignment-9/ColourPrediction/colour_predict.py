@@ -19,30 +19,41 @@ def main(inputs):
     train, validation = data.randomSplit([0.75, 0.25])
     train = train.cache()
     validation = validation.cache()
-    
+
+
     # TODO: create a pipeline to predict RGB colours -> word
     rgb_assembler = VectorAssembler(inputCols=['R', 'G', 'B'], outputCol='features')
     word_indexer = StringIndexer(inputCol="word", outputCol="word_indexed")
-    #classifier = MultilayerPerceptronClassifier(featuresCol='features', labelCol='word_indexed', layers=[3, 30, 11])
     classifier = LogisticRegression(featuresCol='features', labelCol='word_indexed', elasticNetParam=0.5)
+    #classifier = MultilayerPerceptronClassifier(featuresCol='features', labelCol='word_indexed', layers=[3, 30, 11])
     rgb_pipeline = Pipeline(stages=[rgb_assembler, word_indexer, classifier])
     rgb_model = rgb_pipeline.fit(train)
-
-    predictions = rgb_model.transform(validation)
-    predictions.show()
+    rgb_predictions = rgb_model.transform(validation)
 
     # TODO: create an evaluator and score the validation data
-    r2_evaluator = MulticlassClassificationEvaluator(predictionCol="prediction", labelCol="word_indexed", metricName="accuracy")
-    score = r2_evaluator.evaluate(predictions)
+    rgb_evaluator = MulticlassClassificationEvaluator(predictionCol="prediction", labelCol="word_indexed", metricName="accuracy")
+    rgb_score = rgb_evaluator.evaluate(rgb_predictions)
 
     plot_predictions(rgb_model, 'RGB', labelCol='word')
-    print('Validation score for RGB model: %g' % (score, ))
-    
-    rgb_to_lab_query = rgb2lab_query(passthrough_columns=[])
-    
-    # TODO: create a pipeline RGB colours -> LAB colours -> word; train and evaluate.
+    print('Validation score for RGB model: %g' % (rgb_score, ))
 
-    
+
+    # TODO: create a pipeline RGB colours -> LAB colours -> word; train and evaluate.
+    rgb_to_lab_query = rgb2lab_query(passthrough_columns=['word'])
+    lab_transformer = SQLTransformer(statement=rgb_to_lab_query)
+    lab_assembler = VectorAssembler(inputCols=['labL', 'labA', 'labB'], outputCol='features')
+    lab_pipeline = Pipeline(stages=[lab_transformer, lab_assembler, word_indexer, classifier])
+    lab_model = lab_pipeline.fit(train)
+    lab_predictions = lab_model.transform(validation)
+
+    # TODO: create an evaluator and score the validation data
+    lab_evaluator = MulticlassClassificationEvaluator(predictionCol="prediction", labelCol="word_indexed", metricName="accuracy")
+    lab_score = lab_evaluator.evaluate(lab_predictions)
+
+    plot_predictions(lab_model, 'LAB', labelCol='word')
+    print('Validation score for LAB model: %g' % (lab_score, ))
+
+
 if __name__ == '__main__':
     inputs = sys.argv[1]
     main(inputs)
