@@ -67,7 +67,7 @@
 - The order of feature's importance are (dayofyear, yesterday_tmax, elevation, latitude, longitude).
 - Prediction is not based only on yesterday temperature, but it is the 2nd most important feature.
 - Features (latitude, longitude, elevation) has almost same importance.
-- The importance seems to be fair enough.
+- The importance seems to be fair enough. And it has taken into account all features more or less.
 +---------------------+---------------------+
 | feature             | importance          |
 +---------------------+---------------------+
