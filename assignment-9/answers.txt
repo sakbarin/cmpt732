@@ -1,0 +1,81 @@
+1) What is your best guess for the slope and intercept of the streaming points being produced?
+
+- As new data arrives, the values of beta and alpha changes and there is no specific value to say.
+- But, the best value would be something like the following table.
+
++------------------+------------------+
+|              beta|             alpha|
++------------------+------------------+
+|61.12517...       |-9.69...          |
++------------------+------------------+
+
+2) Is your streaming program's estimate of the slope and intercept getting better as the program runs? (That is: is the program aggregating all of the data from the start of time, or only those that have arrived since the last output?)
+
+- Yes, the program aggregates all of the data from the start of the time because of using .outputMode("complete"). 
+- Considering all (x, y)s from the start of the program, values for beta and alpha converges to a specific value after running some batchs.
+- And changes in decimal parts get smaller and smaller as the program goes on.
+
+3) In the colour classification question, what were your validation scores for the RGB and LAB pipelines?
+
+- I tried two classification algorithms.
+
+- MultilayerPerceptronClassifier:
+	Validation score for RGB model: 0.584944
+	Validation score for LAB model: 0.710071
+
+- LogisticRegression:
+	Validation score for RGB model: 0.711596
+	Validation score for LAB model: 0.705649
+
+4) When predicting the tmax values, did you over-fit the training data (and for which training/validation sets)?
+
+- No. I didn't face over-fitting while training the model and testing data.
+
+5) What were your testing scores for your model with and without the “yesterday's temperature” feature?
+
+- Using GBTRegressor (without yesterday's temperature):
+	- tmax2 errors
+		r2: 0.859856
+		rmse: 4.831590
+	- tmax-test errors
+		r2 = 0.7882306831500927
+		rmse = 5.969029552399646
+
+- Using GBTRegressor (with yesterday's temperature):
+	- tmax2 errors
+		r2: 0.907547
+		rmse: 3.876208
+	- tmax-test errors
+		r2 = 0.9035233645067434
+		rmse = 4.01572009130848
+
+6) If you're using a tree-based model, you'll find a .featureImportances property that describes the relative importance of each feature (code commented out in weather_test.py; if not, skip this question). Have a look with and without the “yesterday's temperature” feature: do the results make sense and suggest that your model is making decisions reasonably? With “yesterday's temperature”, is it just predicting “same as yesterday”? 
+
+- Following is the importance of features without yesterday_tmax. 
+- The order of features' importance are (dayofyear, latitude, elevation, longitude).
+- It seems to be reasonable.
++---------------------+---------------------+
+| feature             | importance          |
++---------------------+---------------------+
+|dayofyear 	      |	0.3265020506290136  |
+|latitude 	      |	0.26172029069107433 |
+|longitude	      |	0.18773729492069552 |
+|elevation	      |	0.22404036375921646 |
++---------------------+---------------------+
+
+- Following is the importance of features with yesterday_tmax.
+- The order of feature's importance are (dayofyear, yesterday_tmax, elevation, latitude, longitude).
+- Prediction is not based only on yesterday temperature, but it is the 2nd most important feature.
+- Features (latitude, longitude, elevation) has almost same importance.
+- The importance seems to be fair enough.
++---------------------+---------------------+
+| feature             | importance          |
++---------------------+---------------------+
+|dayofyear 	      | 0.2533264826036039  |
+|latitude 	      |	0.17678070273319169 |
+|longitude 	      |	0.16129620052229035 |
+|elevation 	      |	0.18183087563445932 |
+|yesterday_tmax	      |	0.22676573850645462 |
++---------------------+---------------------+
+
+
