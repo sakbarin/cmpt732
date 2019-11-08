@@ -24,8 +24,8 @@ def main(inputs):
     # TODO: create a pipeline to predict RGB colours -> word
     rgb_assembler = VectorAssembler(inputCols=['R', 'G', 'B'], outputCol='features')
     word_indexer = StringIndexer(inputCol="word", outputCol="word_indexed")
-    classifier = LogisticRegression(featuresCol='features', labelCol='word_indexed', elasticNetParam=0.5)
-    #classifier = MultilayerPerceptronClassifier(featuresCol='features', labelCol='word_indexed', layers=[3, 30, 11])
+    #classifier = LogisticRegression(featuresCol='features', labelCol='word_indexed', elasticNetParam=0.5)
+    classifier = MultilayerPerceptronClassifier(featuresCol='features', labelCol='word_indexed', layers=[3, 30, 11])
     rgb_pipeline = Pipeline(stages=[rgb_assembler, word_indexer, classifier])
     rgb_model = rgb_pipeline.fit(train)
     rgb_predictions = rgb_model.transform(validation)
