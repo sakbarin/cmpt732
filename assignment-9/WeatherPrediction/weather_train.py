@@ -48,7 +48,7 @@ def main(inputs, output):
     assembler = VectorAssembler(inputCols=['dayofyear', 'latitude', 'longitude', 'elevation', 'yesterday_tmax'], outputCol='features')
 
     # output column
-    regressor = LinearRegression(featuresCol='features', labelCol='tmax', maxIter=50, regParam=1)
+    regressor = GBTRegressor(featuresCol='features', labelCol='tmax', maxIter=20, maxDepth=10)
 
     # pipeline
     pipeline = Pipeline(stages=[transformer, assembler, regressor])
@@ -61,14 +61,18 @@ def main(inputs, output):
     predictions.show()
 
     # evaluate model
-    evaluator = RegressionEvaluator(predictionCol="prediction", labelCol="tmax", metricName="r2")
-    score = evaluator.evaluate(predictions)
+    r2_evaluator = RegressionEvaluator(predictionCol='prediction', labelCol='tmax', metricName='r2')
+    r2 = r2_evaluator.evaluate(predictions)
+    
+    rmse_evaluator = RegressionEvaluator(predictionCol='prediction', labelCol='tmax', metricName='rmse')
+    rmse = rmse_evaluator.evaluate(predictions)
 
     # save model
     model.write().overwrite().save(output)
 
     # print score
-    print("Prediction Score: %f" % (score))
+    print("r2: %f" % (r2))
+    print("rmse: %f" % (rmse))
 
 
 if __name__ == '__main__':
