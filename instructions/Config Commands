@@ -1,0 +1,108 @@
+------------------------------------------------------------
+Install Git:
+
+sudo apt-get install git
+
+------------------------------------------------------------
+Install Jupyter Notebook:
+
+sudo apt install python3-pip
+pip3 install jupyter
+
+------------------------------------------------------------
+
+ssh-keygen -t rsa -b 4096 -N ""
+ssh-copy-id <USERID>@gateway.sfucloud.ca
+
+nano -w ~/.ssh/config
+
+Host gateway.sfucloud.ca
+  User <USERID>
+  LocalForward 8088 master.sfucloud.ca:8088
+  LocalForward 19888 master.sfucloud.ca:19888
+  LocalForward 50070 master.sfucloud.ca:50070
+
+scp wordcount.jar <USERID>@gateway.sfucloud.ca: dest_path
+
+ssh gateway.sfucloud.ca
+
+HDFS namenode: http://localhost:50070/
+YARN application master: http://localhost:8088/
+MapReduce job history server: http://localhost:19888/ 
+
+------------------------------------------------------------
+
+export JAVA_HOME=/home/sakbarin/libs/jdk1.8.0_221
+export HADOOP_HOME=/home/sakbarin/libs/hadoop-3.1.2
+export HADOOP_CLASSPATH=./json-20180813.jar
+export PATH=${PATH}:${JAVA_HOME}/bin:${HADOOP_HOME}/bin
+
+------------------------------------------------------------
+
+hdfs dfs -ls
+hdfs dfs -ls output-1
+hdfs dfs -ls /user/<USERID>
+
+hdfs dfs -mkdir wordcount-2
+hdfs dfs -copyFromLocal /home/bigdata/wordcount/* wordcount-2/
+hdfs dfs -mkdir wordcount-1
+hdfs dfs -cp wordcount-2/a* wordcount-1/
+
+
+javac -classpath $(hadoop classpath) WordCountImproved.java
+javac -classpath $(hadoop classpath):./json-20180813.jar LongPairWritable.java RedditAverage.java 
+
+
+jar cf WordCountImproved.jar WordCountImproved*.class
+jar cf RedditAverage.jar *.class
+
+
+yarn jar wordcount.jar WordCount -D wordcount-1 output-2
+yarn jar wordcount.jar WordCount -D mapreduce.job.reduces=0 wordcount-1 output-2
+yarn jar wordcount.jar WordCount -D mapreduce.job.reduces=3 wordcount-1 output-2
+yarn jar WordCountImproved.jar WordCountImproved wordcount-1 output-1
+yarn jar RedditAverage.jar RedditAverage -libjars ./json-20180813.jar reddit-1 output-1
+
+
+
+hdfs dfs -cat output-1/part-r-00000 | less
+hdfs dfs -cat output-1/part-r-00000 | head -10
+hdfs dfs -cat output-1/part-r-00000 | grep -i "^better"
+
+
+hdfs dfs -rm -r output-1
+hdfs dfs -rm -r /user/<USERID>/output*
+
+
+yarn logs -applicationId <APPLICATION_ID> | less
+yarn application -list
+yarn application -kill <APPLICATION_ID>
+
+------------------------------------------------------------
+Local:
+export JAVA_HOME=/home/sakbarin/libs/jdk1.8.0_221
+export SPARK_HOME=/home/sakbarin/libs/spark-2.4.4-bin-hadoop2.7
+export PYSPARK_PYTHON=python3
+export PYSPARK_DRIVER_PYTHON=jupyter
+export PYSPARK_DRIVER_PYTHON_OPTS='notebook'
+export PATH=${PATH}:${SPARK_HOME}/bin
+
+
+pyspark
+spark-submit sparkcode.py
+
+
+Lab Computer:
+export SPARK_HOME=/usr/shared/CMPT/big-data/spark-2.4.4-bin-hadoop2.7
+export PYSPARK_PYTHON=python3
+
+${SPARK_HOME}/bin/pyspark
+${SPARK_HOME}/bin/spark-submit sparkcode.py
+
+
+Cluster:
+module load spark
+
+pyspark
+spark-submit sparkcode.py
+
